@@ -17,3 +17,5 @@ DAT 250 Assignment 2
   For example a user could make an account with no email, or name.
 - JUnit test for fully automatic testing,
   what i currently have is testing through VS Code http client, where each test has to be clicked to run.
+
+https://github.com/Martin-Toft/poll-app-rest-api/tree/main
