@@ -1,0 +1,69 @@
+### Create first user
+# @name user1
+POST http://localhost:8080/users
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "email": "alice@example.com"
+}
+
+### Create secound user
+# @name user2
+POST http://localhost:8080/users
+Content-Type: application/json
+
+{
+  "username": "bob",
+  "email": "bob@example.com"
+}
+
+### list users
+GET http://localhost:8080/users
+
+### Create a poll
+# @name poll
+POST http://localhost:8080/polls
+Content-Type: application/json
+
+{
+  "ownerId": "{{user1.response.body.$.id}}",
+  "question": "Your favorite animal?",
+  "publishedAt": "2025-01-01T00:00:00Z",
+  "validUntil": "2025-12-31T23:59:59Z",
+  "options": [
+    { "caption": "Dog", "presentationOrder": 1 },
+    { "caption": "cat", "presentationOrder": 2 },
+    { "caption": "parrot", "presentationOrder": 3 }
+  ]
+}
+
+### List polls
+GET http://localhost:8080/polls
+
+### secound user votes
+POST http://localhost:8080/polls/{{poll.response.body.$.id}}/votes
+Content-Type: application/json
+
+{
+  "userId": "{{user2.response.body.$.id}}",
+  "optionId": "{{poll.response.body.$.options[1].id}}"
+}
+
+### second user changes vote
+POST http://localhost:8080/polls/{{poll.response.body.$.id}}/votes
+Content-Type: application/json
+
+{
+  "userId": "{{user2.response.body.$.id}}",
+  "optionId": "{{poll.response.body.$.options[0].id}}"
+}
+
+### List votes
+GET http://localhost:8080/polls/{{poll.response.body.$.id}}/votes
+
+### Delete poll
+DELETE http://localhost:8080/polls/{{poll.response.body.$.id}}
+
+### List votes after delete
+GET http://localhost:8080/polls/{{poll.response.body.$.id}}/votes
