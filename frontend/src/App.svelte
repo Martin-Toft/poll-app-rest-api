@@ -81,7 +81,7 @@
     if (!res.ok) {
       console.error("failed", res.status); return;
     }
-    
+
     createdPoll = null;
     try {
       if ((res.headers.get("content-type") || "").includes("application/json")) {
@@ -207,7 +207,7 @@
     {/each}
 
     <button type="button" on:click={addOption}>+ Add option</button>
-    <button type="button" on:click={removeLastOption} disabled={options.length <= 2}>− Remove option</button>
+    <button type="button" on:click={removeLastOption} disabled={options.length <= 2}>- Remove option</button>
     <button type="submit">Create poll</button>
 
     {#if createdPoll?.id}
