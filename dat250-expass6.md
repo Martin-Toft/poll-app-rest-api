@@ -3,6 +3,7 @@
 - possability to create a poll with any number of options
 - possability to vote on an existing poll and see total votes per option
 - a simple open by "poll-ID" flow
+- added static files
 
 ## Technical problems
 - it was for the most part handling data (400 bad requests), giving and receiving data on the "expected" format took a while, but
