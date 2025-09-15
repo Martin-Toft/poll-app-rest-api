@@ -5,7 +5,7 @@
 - a simple open by poll-ID flow
 
 ## Technical problems
-- it was for the most part handling data (400 bad requests), giving and receiving data on the "expected" form took a while, but
+- it was for the most part handling data (400 bad requests), giving and receiving data on the "expected" format took a while, but
 with a bit of trying and failing i made it work.
 - also had a bit of CORS problems in the beginning, I dont remember exactly what i had in the @crossorigin on the controllers
 i just know that i had to try a couple different restrictions before it started working.
