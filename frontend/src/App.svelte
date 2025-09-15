@@ -207,7 +207,7 @@
     {/each}
 
     <button type="button" on:click={addOption}>+ Add option</button>
-    <button type="button" on:click={removeLastOption} disabled={options.length <= 2}>− Remove option</button>
+    <button type="button" on:click={removeLastOption} disabled={options.length <= 2}>- Remove option</button>
     <button type="submit">Create poll</button>
 
     {#if createdPoll?.id}
