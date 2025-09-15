@@ -16,7 +16,8 @@ colors and so on
 ## Pending issues
 - sometimes when restarting, when looking on the browser consol while creating a poll, i get a 500 error
 that i am not sure how to fix, i suspect it has something to do with the way i create demo users since i have not implemented
-a way of using the SPA to register users
+a way of using the SPA to register users.
+although the app still works as intended even though this error pops up in the consol.
 
 Link to the .svelte file:
 https://github.com/Martin-Toft/poll-app-rest-api/blob/main/frontend/src/App.svelte
