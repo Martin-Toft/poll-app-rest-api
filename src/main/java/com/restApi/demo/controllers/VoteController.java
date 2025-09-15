@@ -14,6 +14,11 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/polls/{pollId}")
+@CrossOrigin(
+  origins = { "http://localhost:5173", "http://127.0.0.1:5173" },
+  methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS },
+  allowedHeaders = "*"
+)
 public class VoteController {
 
   @Data

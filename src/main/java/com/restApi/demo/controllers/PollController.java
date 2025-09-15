@@ -13,6 +13,11 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/polls")
+@CrossOrigin(
+  origins = { "http://localhost:5173", "http://127.0.0.1:5173" },
+  methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS },
+  allowedHeaders = "*"
+)
 public class PollController {
 
   @Data
@@ -37,6 +42,11 @@ public class PollController {
   }
 
   @PostMapping
+  @CrossOrigin(
+    origins = { "http://localhost:5173", "http://127.0.0.1:5173" }, // add 127.0.0.1
+    methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS },
+    allowedHeaders = "*"
+  )
   public Poll create(@RequestBody CreatePollRequest request) {
     UUID owner = UUID.fromString(request.getOwnerId());
     var options = new ArrayList<VoteOption>();
