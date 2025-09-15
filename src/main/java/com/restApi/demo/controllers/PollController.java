@@ -43,7 +43,7 @@ public class PollController {
 
   @PostMapping
   @CrossOrigin(
-    origins = { "http://localhost:5173", "http://127.0.0.1:5173" }, // add 127.0.0.1
+    origins = { "http://localhost:5173", "http://127.0.0.1:5173" },
     methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS },
     allowedHeaders = "*"
   )
