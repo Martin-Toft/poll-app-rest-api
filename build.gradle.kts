@@ -26,6 +26,9 @@ dependencies {
     testCompileOnly("org.projectlombok:lombok:1.18.32")
     testAnnotationProcessor("org.projectlombok:lombok:1.18.32")
 
+	implementation("org.hibernate.orm:hibernate-core:7.1.1.Final")
+    implementation("com.h2database:h2:2.3.232")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
