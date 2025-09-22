@@ -46,7 +46,7 @@
     if (options.length <= 2) return;
     options = options.slice(0, -1);
   }
-  //function for creating a poll
+  //Function for creating a poll
   let createdPoll = null;
 
   async function handleCreate(e) {
