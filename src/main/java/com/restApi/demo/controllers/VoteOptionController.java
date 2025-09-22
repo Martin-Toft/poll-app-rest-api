@@ -1,7 +1,7 @@
 package com.restApi.demo.controllers;
 
-import com.restApi.demo.domain.DomainManager;
-import com.restApi.demo.domain.VoteOption;
+import com.restApi.demo.domain.*;
+
 import lombok.Data;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,9 +11,9 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/polls/{pollId}/options")
 @CrossOrigin(
-  origins = { "http://localhost:5173", "http://127.0.0.1:5173" },
-  methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS },
-  allowedHeaders = "*"
+    origins = { "http://localhost:5173", "http://127.0.0.1:5173" },
+    methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS },
+    allowedHeaders = "*"
 )
 public class VoteOptionController {
 

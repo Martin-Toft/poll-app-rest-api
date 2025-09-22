@@ -1,122 +1,244 @@
 package com.restApi.demo.domain;
 
-import org.springframework.stereotype.Component;
+
+import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
-@Component
+@Service
 public class DomainManager {
 
-    private final Map<UUID, User> users = new ConcurrentHashMap<>();
-    private final Map<UUID, Poll> polls = new ConcurrentHashMap<>();
+    // in-memory storing
+    private final Map<UUID, User> users   = new ConcurrentHashMap<>();
+    private final Map<UUID, Poll> polls   = new ConcurrentHashMap<>();
     private final Map<UUID, VoteOption> options = new ConcurrentHashMap<>();
-    private final Map<String, Vote> latestVoteByUserInPoll = new ConcurrentHashMap<>();
+    private final Map<UUID, Vote> votes   = new ConcurrentHashMap<>();
 
-    private static String key(UUID pollId, UUID userId){
-        return pollId + ":" + userId;
-    }
+    //users
+    public User createUser(String username, String email) {
+        User u = new User(username, email);
+        if (u.getId() == null) u.setId(UUID.randomUUID());
+        users.put(u.getId(), u);
+        return u;
+        }
 
-    // CRUD operations for users
-    public User createUser(String username, String email){
-        var user = new User(UUID.randomUUID(), username, email);
-        users.put(user.getId(), user);
-        return user;
-    }
+        public Optional<User> getUser(UUID id) {
+            return Optional.ofNullable(users.get(id));
+        }
 
-    public List<User> listUsers() {
-        return List.copyOf(users.values());
-    }
-    public Optional<User> getUser(UUID id){
-        return Optional.ofNullable(users.get(id));
-    }
+        public List<User> listUsers() {
+            return users.values().stream()
+                .sorted(Comparator.comparing(User::getUsername, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .collect(Collectors.toList());
+        }
 
     public User updateUser(UUID id, String username, String email) {
-        var user = users.get(id);
-        user.setUsername(username);
-        user.setEmail(email);
-        return user;
+        User u = users.get(id);
+        if (u == null) throw new NoSuchElementException("user not found: " + id);
+        u.setUsername(username);
+        u.setEmail(email);
+        return u;
     }
 
-    public void deleteUser(UUID id) { users.remove(id); }
+    public void deleteUser(UUID id) {
+        User u = users.remove(id);
+        if (u == null) return;
 
-    // CRUD operations for polls
-    public Poll createPoll(UUID ownerId, String question, Instant publishedAt, Instant validUntil, List<VoteOption> incomingOptions) {
-        var poll = new Poll(UUID.randomUUID(), ownerId, question, publishedAt, validUntil, new ArrayList<>());
-        for (VoteOption option : incomingOptions) {
-            var opt = new VoteOption(UUID.randomUUID(), poll.getId(), option.getCaption(), option.getPresentationOrder());
-            options.put(opt.getId(), opt);
-            poll.getOptions().add(opt);
+        // remove polls created by user
+        var toRemove = polls.values().stream()
+            .filter(p -> p.getCreatedBy() != null && id.equals(p.getCreatedBy().getId()))
+            .map(Poll::getId)
+            .collect(Collectors.toList());
+        toRemove.forEach(this::deletePoll);
+
+        // remove votes cast by user
+        var voteIds = votes.values().stream()
+            .filter(v -> v.getCastBy() != null && id.equals(v.getCastBy().getId()))
+            .map(Vote::getId)
+            .collect(Collectors.toList());
+        voteIds.forEach(votes::remove);
         }
-        polls.put(poll.getId(), poll);
-        return poll;
+
+    //polls
+    public Poll createPoll(UUID ownerId, String question, Instant publishedAt, Instant validUntil, List<VoteOption> initialOptions) {
+        User owner = users.get(ownerId);
+        if (owner == null) throw new NoSuchElementException("owner not found: " + ownerId);
+
+        Poll p = new Poll();
+        p.setQuestion(question);
+        p.setCreatedBy(owner);
+        p.setPublishedAt(publishedAt);
+        p.setValidUntil(validUntil);
+        if (p.getId() == null) p.setId(UUID.randomUUID());
+        if (p.getOptions() == null) p.setOptions(new ArrayList<>());
+
+        polls.put(p.getId(), p);
+
+        if (initialOptions != null) {
+            int idx = 0;
+            for (VoteOption in : initialOptions) {
+                VoteOption o = new VoteOption();
+                o.setCaption(in.getCaption());
+                o.setPresentationOrder(idx++);
+                o.setPoll(p);
+                if (o.getId() == null) o.setId(UUID.randomUUID());
+                options.put(o.getId(), o);
+                p.getOptions().add(o);
+            }
+        }
+
+        return p;
     }
 
-    public List<Poll> listPolls(){
-        return List.copyOf(polls.values());
-    }
-    public Optional<Poll> getPoll(UUID id){
+    public Optional<Poll> getPoll(UUID id) {
         return Optional.ofNullable(polls.get(id));
     }
 
-    public void deletePoll(UUID id) {
-        var poll = polls.remove(id);
-        if (poll == null) return;
+    public List<Poll> listPolls() {
+        return polls.values().stream()
+            .sorted(Comparator
+                .comparing(Poll::getPublishedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(p -> p.getId().toString()))
+            .collect(Collectors.toList());
+    }
 
-        // remove all options belonging to this poll
-        if (poll.getOptions() != null) {
-            for (var option : poll.getOptions()) {
-                options.remove(option.getId());
-            }
+    public void deletePoll(UUID pollId) {
+        Poll p = polls.remove(pollId);
+        if (p == null) return;
+
+        // remove options
+        var optIds = options.values().stream()
+            .filter(o -> o.getPoll() != null && pollId.equals(o.getPoll().getId()))
+            .map(VoteOption::getId)
+            .collect(Collectors.toList());
+        optIds.forEach(options::remove);
+
+        // remove votes for this poll
+        var voteIds = votes.values().stream()
+            .filter(v -> v.getVotesOn() != null
+                && v.getVotesOn().getPoll() != null
+                && pollId.equals(v.getVotesOn().getPoll().getId()))
+            .map(Vote::getId)
+            .collect(Collectors.toList());
+        voteIds.forEach(votes::remove);
         }
-        //remove latest vote by all users on this poll
-        latestVoteByUserInPoll.keySet().removeIf(k -> k.startsWith(id.toString() + ":"));
+
+
+    public VoteOption addOption(UUID pollId, String caption, int presentationOrder) {
+        Poll p = polls.get(pollId);
+        if (p == null) throw new NoSuchElementException("poll not found: " + pollId);
+        if (p.getOptions() == null) p.setOptions(new ArrayList<>());
+
+        VoteOption o = new VoteOption();
+        o.setCaption(caption);
+        if (presentationOrder < 0) {
+            presentationOrder = p.getOptions().size();
+        }
+        o.setPresentationOrder(presentationOrder);
+        o.setPoll(p);
+
+        if (o.getId() == null) o.setId(UUID.randomUUID());
+        options.put(o.getId(), o);
+        p.getOptions().add(o);
+        p.getOptions().sort(Comparator.comparingInt(VoteOption::getPresentationOrder));
+
+        return o;
     }
 
-    //CRUD operations for vote options
-    public List<VoteOption> listOptions(UUID pollId) {
-        return polls.get(pollId).getOptions();
-    }
+    public VoteOption updateOption(UUID pollId, UUID optionId, String caption, int presentationOrder) {
+        Poll p = polls.get(pollId);
+        VoteOption o = options.get(optionId);
+        if (p == null) throw new NoSuchElementException("poll not found: " + pollId);
+        if (o == null || o.getPoll() == null || !pollId.equals(o.getPoll().getId()))
+        throw new NoSuchElementException("option not found in poll");
 
-    public VoteOption addOption(UUID pollId, String caption, int order) {
-        var poll = polls.get(pollId);
-        var opt = new VoteOption(UUID.randomUUID(), pollId, caption, order);
-        options.put(opt.getId(), opt);
-        poll.getOptions().add(opt);
-        return opt;
-    }
-
-    public VoteOption updateOption(UUID pollId, UUID optionId, String caption, int order) {
-        var option = options.get(optionId);
-        option.setCaption(caption);
-        option.setPresentationOrder(order);
-        return option;
+        o.setCaption(caption);
+        o.setPresentationOrder(presentationOrder);
+        if (p.getOptions() != null) {
+            p.getOptions().sort(Comparator.comparingInt(VoteOption::getPresentationOrder));
+        }
+        return o;
     }
 
     public void deleteOption(UUID pollId, UUID optionId) {
+        VoteOption o = options.get(optionId);
+        if (o == null) return;
+        if (o.getPoll() == null || !pollId.equals(o.getPoll().getId())) return;
+
+        // remove option
         options.remove(optionId);
-        polls.get(pollId).getOptions().removeIf(o -> o.getId().equals(optionId));
+        Poll p = polls.get(pollId);
+        if (p != null && p.getOptions() != null) {
+            p.getOptions().removeIf(vo -> optionId.equals(vo.getId()));
+        }
+
+        // remove votes on this option
+        var toDelete = votes.values().stream()
+            .filter(v -> v.getVotesOn() != null && optionId.equals(v.getVotesOn().getId()))
+            .map(Vote::getId)
+            .collect(Collectors.toList());
+        toDelete.forEach(votes::remove);
     }
 
-    // CRUD operations for votes
+    //votes
     public Vote castOrChangeVote(UUID pollId, UUID userId, UUID optionId) {
-        var k = key(pollId, userId);
-        var now = Instant.now();
-        var vote = latestVoteByUserInPoll.getOrDefault(k, new Vote(UUID.randomUUID(), pollId, userId, optionId, now));
-        vote.setOptionId(optionId);
-        vote.setPublishedAt(now);
-        latestVoteByUserInPoll.put(k, vote);
-        return vote;
+        User user = users.get(userId);
+        VoteOption opt = options.get(optionId);
+        if (user == null) throw new NoSuchElementException("user not found: " + userId);
+        if (opt == null) throw new NoSuchElementException("option not found: " + optionId);
+        if (opt.getPoll() == null || !pollId.equals(opt.getPoll().getId()))
+        throw new IllegalArgumentException("option does not belong to poll");
+
+        // remove existing vote by this user on this poll
+        var existingIds = votes.values().stream()
+            .filter(v ->
+                v.getCastBy() != null && userId.equals(v.getCastBy().getId()) &&
+                v.getVotesOn() != null && v.getVotesOn().getPoll() != null &&
+                pollId.equals(v.getVotesOn().getPoll().getId()))
+            .map(Vote::getId)
+            .collect(Collectors.toList());
+        existingIds.forEach(votes::remove);
+
+        // create new
+        Vote v = new Vote();
+        v.setCastBy(user);
+        v.setVotesOn(opt);
+        v.setPublishedAt(Instant.now());
+        if (v.getId() == null) v.setId(UUID.randomUUID());
+        votes.put(v.getId(), v);
+        return v;
     }
+
 
     public List<Vote> listMostRecentVotes(UUID pollId) {
-        List<Vote> result = new ArrayList<>();
-        for (Vote vote : latestVoteByUserInPoll.values()) {
-            if (vote.getPollId().equals(pollId)) {
-                result.add(vote);
-            }
+        List<Vote> allForPoll = votes.values().stream()
+            .filter(v -> v.getVotesOn() != null
+                && v.getVotesOn().getPoll() != null
+                && pollId.equals(v.getVotesOn().getPoll().getId()))
+            .sorted(Comparator
+                .comparing(Vote::getPublishedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(v -> v.getId().toString()))
+            .collect(Collectors.toList());
+
+
+        Map<UUID, Vote> newestPerUser = new LinkedHashMap<>();
+        for (Vote v : allForPoll) {
+            UUID uid = (v.getCastBy() != null) ? v.getCastBy().getId() : null;
+            if (uid == null) continue;
+            newestPerUser.putIfAbsent(uid, v);
         }
-        return result;
+        return new ArrayList<>(newestPerUser.values());
+    }
+
+    public List<VoteOption> listOptions(UUID pollId) {
+        Poll p = polls.get(pollId);
+        if (p == null || p.getOptions() == null) return List.of();
+            return p.getOptions().stream()
+            .sorted(Comparator.comparingInt(VoteOption::getPresentationOrder))
+            .collect(Collectors.toList());
+
     }
 }
