@@ -19,6 +19,7 @@ repositories {
 }
 
 dependencies {
+    
     implementation("org.springframework.boot:spring-boot-starter-web")
 
     compileOnly("org.projectlombok:lombok:1.18.32")
@@ -30,7 +31,11 @@ dependencies {
     implementation("jakarta.persistence:jakarta.persistence-api:3.2.0")
     implementation("com.h2database:h2:2.3.232")
 
+    implementation("redis.clients:jedis:6.2.0")
+    
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    
 }
 
 tasks.withType<Test> {

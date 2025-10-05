@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.restApi.demo.redis.*;
+
 @RestController
 @RequestMapping("/polls/{pollId}")
 @CrossOrigin(
@@ -49,6 +51,7 @@ public class VoteController {
     @PostMapping("/votes")
     public Map<String, Object> upsert(@PathVariable UUID pollId, @RequestBody VoteReq req) {
         var v = domainManager.castOrChangeVote(pollId, UUID.fromString(req.getUserId()), UUID.fromString(req.getOptionId()));
+        VoteCountCache.invalidate(pollId.toString());
         return toView(v);
     }
 

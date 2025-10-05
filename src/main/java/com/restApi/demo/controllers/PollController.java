@@ -1,13 +1,18 @@
 package com.restApi.demo.controllers;
 
 import com.restApi.demo.domain.*;
+import com.restApi.demo.redis.*;
 import lombok.Data;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/polls")
@@ -77,4 +82,27 @@ public class PollController {
     public void delete(@PathVariable UUID id){
         domainManager.deletePoll(id);
     }
+
+    //redis
+    @GetMapping("{id}/results")
+    public ResponseEntity<Map<String, Long>> getResults(@PathVariable UUID id) {
+        Map<String, Long> cached = VoteCountCache.get(id.toString());
+        if (cached != null) {
+            return ResponseEntity.ok().header("X_Cache", "HIT").body(cached);
+        }
+        var options = domainManager.listOptions(id);
+        var votes = domainManager.listMostRecentVotes(id);
+
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (var option : options) {
+            long c = votes.stream().filter(v -> v.getOptionId().equals(option.getId())).count();
+            counts.put(option.getId().toString(), c);
+        }
+        
+        VoteCountCache.put(id.toString(), counts);
+
+        return ResponseEntity.ok().header("X-Cache", "MISS").body(counts);
+    }
+
+
 }
