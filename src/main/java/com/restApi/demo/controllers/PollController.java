@@ -2,10 +2,12 @@ package com.restApi.demo.controllers;
 
 import com.restApi.demo.domain.*;
 import com.restApi.demo.redis.*;
+
 import lombok.Data;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.amqp.core.*;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -40,8 +42,13 @@ public class PollController {
 
     private final DomainManager domainManager;
 
-    public PollController(DomainManager domainManager){
+    private final AmqpAdmin amqpAdmin;
+    private final TopicExchange pollsExchange;
+
+    public PollController(DomainManager domainManager, AmqpAdmin amqpAdmin, TopicExchange pollsExchange){
         this.domainManager = domainManager;
+        this.amqpAdmin = amqpAdmin;
+        this.pollsExchange = pollsExchange;
     }
 
     @PostMapping
@@ -59,13 +66,19 @@ public class PollController {
             vo.setPresentationOrder(option.getPresentationOrder());
             options.add(vo);
         }
-        return domainManager.createPoll(
+        Poll poll = domainManager.createPoll(
             owner,
             request.getQuestion(),
             request.getPublishedAt(),
             request.getValidUntil(),
             options
         );
+        String qName = "poll." + poll.getId();
+        Queue q = QueueBuilder.durable(qName).build();
+        amqpAdmin.declareQueue(q);
+        amqpAdmin.declareBinding(BindingBuilder.bind(q).to(pollsExchange).with("poll." + poll.getId() + ".*"));
+
+        return poll;
     }
 
     @GetMapping

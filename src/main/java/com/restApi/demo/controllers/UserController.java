@@ -2,6 +2,8 @@ package com.restApi.demo.controllers;
 
 import com.restApi.demo.domain.*;
 import lombok.Data;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,8 +41,8 @@ public class UserController {
 	}
 
 	@GetMapping("{id}")
-	public User get(@PathVariable UUID id){
-		return domainManager.getUser(id).get();
+	public ResponseEntity<User> get(@PathVariable UUID id){
+		return domainManager.getUser(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
 	}
 
 	@PutMapping("{id}")
