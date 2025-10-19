@@ -1,0 +1,26 @@
+services:
+  api:
+    build: .
+    ports: ["8080:8080"]
+    environment:
+      SPRING_RABBITMQ_HOST: rabbit
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: app
+      SPRING_RABBITMQ_PASSWORD: app
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - rabbit
+      - redis
+    restart: unless-stopped
+
+  rabbit:
+    image: rabbitmq:3-management
+    ports: ["5672:5672", "15672:15672"]
+    environment:
+      RABBITMQ_DEFAULT_USER: app
+      RABBITMQ_DEFAULT_PASS: app
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]

@@ -7,7 +7,11 @@ import redis.clients.jedis.JedisPooled;
 
 public class VoteCountCache {
 
-    private static final JedisPooled jedis = new JedisPooled("localhost", 6379);
+    private static final String REDIS_HOST = System.getenv().getOrDefault("REDIS_HOST", "localhost");
+    private static final int REDIS_PORT = Integer.parseInt(System.getenv().getOrDefault("REDIS_PORT", "6379"));
+
+    private static final redis.clients.jedis.JedisPooled jedis = new redis.clients.jedis.JedisPooled(REDIS_HOST, REDIS_PORT);
+
     private static final int TTL_SECONDS = 3600;
 
     private static String key(String pollId) {
